@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проект «Расцветай» — Оплата участия</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#ffffff; --text:#111827; --muted:#6b7280; --brand:#111827; --ok:#065f46; --radius:16px; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:24px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e5e7eb;padding:6px 10px;border-radius:999px;font-size:14px;color:#111}
+  h1{font-size:28px;line-height:1.2;margin:16px 0 8px}
+  p.lead{color:var(--muted);font-size:16px;margin:0 0 16px;max-width:850px}
+  .grid{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:900px){ .grid{grid-template-columns:2fr 1fr}}
+  .card{background:var(--card);border:1px solid #e5e7eb;border-radius:var(--radius);padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .features{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:600px){ .features{grid-template-columns:1fr 1fr}}
+  .feat{display:flex;gap:8px;color:#374151;font-size:15px}
+  .feat .dot{width:18px;height:18px;border-radius:999px;border:2px solid #10b981;display:inline-block;margin-top:2px}
+  .muted{color:var(--muted);font-size:13px}
+  label{display:block;font-size:14px;color:#374151}
+  .row{display:flex;gap:8px;margin-top:8px}
+  input[type=text]{flex:1;border:1px solid #d1d5db;border-radius:12px;padding:10px 12px;font-size:16px;outline:none}
+  button{border:0;border-radius:12px;background:var(--brand);color:#fff;padding:12px 14px;font-weight:600;font-size:16px;cursor:pointer}
+  button.secondary{background:#fff;color:#111;border:1px solid #e5e7eb}
+  .price{font-weight:700}
+  .ok{color:#065f46;font-size:14px;margin-top:6px}
+  footer{color:#6b7280;font-size:13px;margin-top:18px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="badge">Оплата картой / Apple Pay / Google Pay</span>
+    <h1>Проект «Расцветай»: Авторский проект по саморазвитию и мотивации</h1>
+    <p class="lead">Формула роста: короткие практики, поддержка куратора и конкретные шаги на каждый день. Оплата — в один клик.</p>
+    <div class="grid">
+      <section class="card">
+        <h2 style="margin:0 0 12px;font-size:22px">Что внутри</h2>
+        <div class="features">
+          <div class="feat"><span class="dot"></span><span>7 дней доступа к материалам</span></div>
+          <div class="feat"><span class="dot"></span><span>Дневник практик и чек‑листы</span></div>
+          <div class="feat"><span class="dot"></span><span>Поддержка в чате</span></div>
+          <div class="feat"><span class="dot"></span><span>Оплата на защищённой странице Stripe</span></div>
+        </div>
+        <p class="muted" style="margin-top:12px">
+          После оплаты вы получите подтверждение на почту и ссылку‑доступ. Вопросы: <a href="mailto:hello@rassvetai.example">hello@rassvetai.example</a> или <a href="https://t.me/your_support" target="_blank">Telegram‑чат</a>.
+        </p>
+      </section>
+      <aside class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="margin:0;font-size:20px">Оплата участия</h3>
+          <span class="muted">1 990 ₽</span>
+        </div>
+        <div style="margin-top:12px">
+          <label for="promo">Промокод</label>
+          <div class="row">
+            <input id="promo" type="text" placeholder="введите код">
+            <button class="secondary" id="apply">Применить</button>
+          </div>
+          <div id="promo-msg" class="ok" style="display:none"></div>
+        </div>
+        <button id="pay" style="width:100%;margin-top:12px">Перейти к оплате</button>
+        <p class="muted" style="margin-top:8px">Платёж проходит на защищённой странице Stripe. Мы не получаем и не храним данные карты.</p>
+      </aside>
+    </div>
+    <footer>© <span id="y"></span> «Расцветай». Все права защищены.</footer>
+  </div>
+
+<script>
+  // Ссылки оплаты
+  const REGULAR = "https://buy.stripe.com/test_dRmdR88pYfaKdSfecN77O00";
+  // Вставьте сюда скидочную ссылку, когда создадите её в Stripe:
+  const PROMO_LINK = REGULAR; // временно такая же, чтобы кнопка не ломалась
+
+  // Допустимые промокоды (регистр и язык не важны)
+  const PROMO_CODES = ["расцвет10"]; // можно добавить: "RASSVET10"
+
+  const promoInput = document.getElementById("promo");
+  const promoMsg = document.getElementById("promo-msg");
+  const applyBtn = document.getElementById("apply");
+  const payBtn = document.getElementById("pay");
+  const yearSpan = document.getElementById("y");
+  yearSpan.textContent = new Date().getFullYear();
+
+  let promoApplied = false;
+
+  function norm(s){ return (s||"").trim().toLowerCase(); }
+
+  applyBtn.addEventListener("click", function(){
+    const val = norm(promoInput.value);
+    if(PROMO_CODES.map(norm).includes(val)){
+      promoApplied = true;
+      promoMsg.style.display = "block";
+      promoMsg.textContent = "Промокод применён. Скидка появится на странице Stripe.";
+    }else{
+      promoApplied = false;
+      promoMsg.style.display = "block";
+      promoMsg.textContent = "Промокод не найден. Проверьте написание.";
+      promoMsg.style.color = "#92400e";
+    }
+  });
+
+  payBtn.addEventListener("click", function(){
+    const url = promoApplied ? PROMO_LINK : REGULAR;
+    window.location.href = url;
+  });
+</script>
+</body>
+</html>
